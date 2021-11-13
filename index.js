@@ -1,8 +1,9 @@
 const express = require("express");
-const app = express();
+require("dotenv").config();
+const ObjectId = require("mongodb").ObjectId;
 const { MongoClient } = require('mongodb');
 const cors = require("cors");
-require("dotenv").config();
+const app = express();
 const port = process.env.PORT || 5000;
 
 //middleware
@@ -10,8 +11,86 @@ app.use(cors());
 app.use(express.json());
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.ta49n.mongodb.net/myFirstDatabase?retryWrites=true&w=majority`;
-
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+
+async function run() {
+    try{
+       await client.connect();
+       const database = client.db('pottery');
+       const productsCollection = database.collection('products');
+       const ordersCollection = database.collection('orders');
+       
+       // all products
+       app.get('/products', async(req, res) => { 
+           const cursor = productsCollection.find({});
+           const products = await cursor.toArray();
+           res.send(products);
+       });
+
+       app.post('/products', async(req, res) => {
+          const product = req.body;
+          console.log('hit the api');
+          const result = await productsCollection.insertOne(product);
+          res.json(result); 
+       })
+
+       app.get("/products/:id", async (req, res) => {
+        const id = req.params.id;
+        console.log("getting specifing product", id);
+        const query = { _id: ObjectId(id) };
+        const product = await productsCollection.findOne(query);
+        res.json(product);
+      });
+       
+      // delete
+      app.delete("/deleteProduct/:id", async (req, res) => {
+        const id = req.params.id;
+        const query = { _id: ObjectId(id) };
+        const result = await productsCollection.deleteOne(query);
+        res.json(result);
+      });
+
+      // orders 
+      app.get('/orders', async(req, res) => { 
+        const cursor = ordersCollection.find({});
+        const order = await cursor.toArray();
+        res.send(order);
+    });
+
+    app.post('/orders', async(req, res) => {
+       const order = req.body;
+       //console.log('hit the api');
+       const result = await ordersCollection.insertOne(order);
+       res.json(result); 
+    })
+
+    app.delete("/deletePurches/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) };
+      const result = await ordersCollection.deleteOne(query);
+      res.json(result);
+    });
+
+
+    app.patch("/updateStatus/:id", (req, res) => {
+      const id = ObjectId(req.params.id);
+      ordersCollection
+        .updateOne(
+          { _id: id },
+          {
+            $set: { purcheStatus: req.body.updateStatus },
+          }
+        )
+        .then((result) => {
+          // console.log(result);
+        });
+    });
+    }
+    finally{
+
+    }
+}
+run().catch(console.dir);
 
 app.get("/", (req, res) => {
     res.send("Running pottery Server");
