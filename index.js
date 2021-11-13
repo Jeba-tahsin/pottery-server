@@ -70,6 +70,14 @@ async function run() {
       res.json(result);
     });
 
+    app.get("/ordersEmail", (req, res) => {
+      ordersCollection
+        .find({ email: req.query.email })
+        .toArray((err, documents) => {
+          res.send(documents);
+        });
+    });
+
     // review
     app.get("/review", async (req, res) => {
       const cursor = reviewCollection.find({});
@@ -105,7 +113,7 @@ async function run() {
         });
     });
 
-    //admin 
+    //admin
     app.post("/admin", async (req, res) => {
       const admin = req.body;
 
@@ -113,16 +121,13 @@ async function run() {
       // console.log(result);
       res.json(result);
     });
-    //admin 
+    //admin
     app.get("/admin", async (req, res) => {
-      const cursor = adminCollection.find({});
-      const admin = await cursor.toArray();
-      res.send(admin);
+      adminCollection.find({ email: req.query.email }).toArray((err, admin) => {
+        res.send(admin);
+      });
     });
-
-  } 
-  
-  finally {
+  } finally {
   }
 }
 run().catch(console.dir);
